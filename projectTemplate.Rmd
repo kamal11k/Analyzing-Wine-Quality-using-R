@@ -1,0 +1,531 @@
+Exploration of Red Wine Quality by Kamal Panigrahi
+========================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Loading all of the packages that I  end up using
+# in my analysis in this code chunk.
+
+library(ggplot2)
+library(GGally)
+library(dplyr)
+library(reshape2)
+library(gridExtra)
+library(psych)
+```
+
+```{r echo=FALSE, Loading_the_Data}
+# Load the Data
+df.wine = read.csv('wineQualityReds.csv')
+```
+### Initial Information
+
+In this project, I will explore a data set on wine quality and physicochemical properties. The objective is to explore which chemical properties influence the quality of red wines. I'll start by exploring the data using the statistical program, R. Through out the project I'll produce and refine plots to illustrate my analysis. The data is available for download in this [link](https://www.google.com/url?q=https%3A%2F%2Fs3.amazonaws.com%2Fudacity-hosted-downloads%2Fud651%2FwineQualityReds.csv&sa=D&sntz=1&usg=AFQjCNFbtvciXJWwSbQuwE2Br_pH9JquAg)  .
+
+
+### Some statistics about dataset
+
+```{r echo=FALSE, Load_the_Data}
+str(df.wine)
+```
+
+From the above observation I found that the dataset contains 1599 observations and 13 variables .Some descriptions about the variables are given below .
+
+* fixed acidity: most acids involved with wine or fixed or nonvolatile (do not evaporate readily)
+
+* volatile acidity: the amount of acetic acid in wine, which at too high of levels can lead to an unpleasant, vinegar taste
+
+* citric acid: found in small quantities, citric acid can add 'freshness' and flavor to wines
+
+* residual sugar: the amount of sugar remaining after fermentation stops, it's rare to find wines with less than 1 gram/liter and wines with greater than 45 grams/liter are considered sweet
+
+* chlorides: the amount of salt in the wine
+
+* free sulfur dioxide: the free form of SO2 exists in equilibrium between molecular SO2 (as a dissolved gas) and bisulfite ion; it prevents microbial growth and the oxidation of wine
+
+* total sulfur dioxide: amount of free and bound forms of S02; in low concentrations, SO2 is mostly undetectable in wine, but at free SO2 concentrations over 50 ppm, SO2 becomes evident in the nose and taste of wine
+
+* density: the density of water is close to that of water depending on the percent alcohol and sugar content
+
+* pH: describes how acidic or basic a wine is on a scale from 0 (very acidic) to 14 (very basic); most wines are between 3-4 on the pH scale
+
+* sulphates: a wine additive which can contribute to sulfur dioxide gas (S02) levels, wich acts as an antimicrobial and antioxidant
+
+* alcohol: the percent alcohol content of the wine
+
+* quality (score between 0 and 10)
+
+
+### Summary
+
+```{r echo=FALSE,warning=FALSE}
+summary(df.wine)
+```
+
+# Univariate Plots Section
+
+I will now analyze single variables to look for unusual data and patterns that need further analysis.
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+grid.arrange(qplot(df.wine$fixed.acidity),
+             qplot(df.wine$volatile.acidity),
+             qplot(df.wine$citric.acid),
+             qplot(df.wine$residual.sugar),
+             qplot(df.wine$chlorides),
+             qplot(df.wine$free.sulfur.dioxide),
+             qplot(df.wine$total.sulfur.dioxide),
+             qplot(df.wine$density),
+             qplot(df.wine$pH),
+             qplot(df.wine$sulphates),
+             qplot(df.wine$alcohol),
+             qplot(df.wine$quality),
+             ncol = 4)
+```
+
+
+
+* It appears that density and pH are normally distributed, with few outliers.
+
+* Fixed and volatile acidity, sulfur dioxides, sulphates, and alcohol seem to be long-tailed.
+
+* Qualitatively, residual sugar and chlorides have extreme outliers.
+
+* Citric acid appeared to have a large number of zero values. I'm curious whether this is truly zero, or if it is a case of non-reporting.
+
+* For most of the wine in our dataset, quality falls between 5 and 7 .
+
+```{r echo=FALSE}
+# Transform quality from an integer to an ordered factor
+df.wine$quality <- factor(df.wine$quality, ordered = T)
+
+# create a categorical varible
+df.wine$Quality_Category <- ifelse(df.wine$quality <= 4, 'poor', ifelse(
+  df.wine$quality < 7, 'good', 'excellent'))
+df.wine$Quality_Category <- ordered(df.wine$Quality_Category,
+                     levels = c('poor', 'good', 'excellent'))
+```
+
+
+I changed the variable 'quality' to a factor variable for further analysis and also creadted another catagorical variable i.e 'Quality_Category' which reveals 3 catagories .poor represents the quality less than or equal to 4 ,'good' represents the quality value between 5 and 7 where as 'excellent' represents wine with quality greater than 7.I will be using these catagorical values later.
+
+Now lets look at each variables .
+
+####fixed.acidity
+
+```{r echo=FALSE,warning=FALSE,message=FALSE, fixed.acidity}
+ggplot(aes(x = fixed.acidity), data = df.wine) +
+  geom_histogram(fill = 'dark blue', colour = 'black')+
+  scale_x_log10(breaks = seq(0,15,2))
+```
+
+To avoid the outliers I took the log scale .There is a high concentration of wines with fixed.acidity close to 8 (the median). 
+
+####volatile.acidity
+
+```{r echo=FALSE,warning=FALSE, message=FALSE, volatile.acidity}
+ggplot(aes(x = volatile.acidity), data = df.wine) +
+  geom_histogram(fill = 'dark blue', colour = 'black')+
+  scale_x_log10()
+```
+
+Though at 0.4 and 0.6 the rise of bins makes it a bit bimodal still the distribution appears almost normal   .Therefore we will use the logarithmic transofomation for our further analysis.
+
+```{r echo=FALSE,message=FALSE, warning=FALSE}
+df.wine$volatile.acidity = log(df.wine$volatile.acidity)
+
+summary(df.wine$volatile.acidity)
+```
+
+
+####citric.acid
+
+```{r echo=FALSE,warning=FALSE, message=FALSE, citric.acid }
+ggplot(aes(x = citric.acid), data = df.wine) +
+  geom_histogram(fill = 'dark blue', colour = 'black') +
+  scale_x_log10()
+```
+
+
+On a logarithmic scale Citric.acid does not posses a normal distribution is ranging from 0 to 1 but for most of wines in our dataset is between .2 and .5 .
+
+
+Residual Sugar and Chlorides are highly right skewed. I will do logorithmic transformation in the next step:
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE,PH}
+p1 = ggplot(aes(residual.sugar), data = df.wine) +
+  geom_histogram(fill = 'dark blue',colour = 'black')+
+  scale_x_log10()
+
+p2 = ggplot(aes(chlorides), data = df.wine) +
+  geom_histogram(fill = 'dark blue',colour = 'black')+
+  scale_x_log10()
+
+grid.arrange(p1,p2,ncol = 2)
+```
+
+In a logarithmic scale both chlorides and residual.sugar look like normally distributed .
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+p1 = ggplot(aes(df.wine$total.sulfur.dioxide), data = df.wine) +
+  geom_histogram(fill = 'dark blue',colour = 'black')+
+  scale_x_log10()
+
+p2 = ggplot(aes(df.wine$sulphates), data = df.wine) +
+  geom_histogram(fill = 'dark blue',colour = 'black')+
+  scale_x_log10()
+
+grid.arrange(p1,p2,ncol = 2)
+```
+
+Though before 'sulphate' was looking normally distributed also after log transformation sulphates take perfect normal shape and total.sulferdioxide also goes better as well.
+
+
+# Univariate Analysis
+
+#### What is the structure of your dataset?
+
+
+There are 1599 observation of wines in the dataset with 12 features . There is one categorical variable (quality) and the others are numerical variables that indicate wine physical and chemical properties of the wine.
+
+#### What is/are the main feature(s) of interest in your dataset?
+
+
+The main feature in the data is quality. I'd like to determine which features determine the quality of wines.
+
+#### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+
+I think the variables such as fixed.acidity ,volatile.acidity and PH will help me to analyse the quality of wine .
+
+#### Did you create any new variables from existing variables in the dataset?
+
+
+Yes, I created a catagorical variable i.e 'Quality_Category' which represents three values (poor,good,excellent) .The value of quality 4 or below is considered as 'poor' ,quality between 5 and 7 is considered as 'good' and above 7 is 'excellent'.
+```{r echo=FALSE}
+table(df.wine$Quality_Category)
+```
+
+#### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+
+
+Among all the distribution of citric.acid was unusual .Even after logarithmic transformation It din't behave as expected .
+
+Some of the distributions were affected by the outliers .I took them in a logarithmic scale and found them as normally distributed .I transformed(log) the volatile.acidity variable for a better visualization .
+
+
+# Bivariate Plots Section
+
+Now to visualize how the variables affect quality of wine it would be better to take an overview of all the  variables using boxplots .
+
+```{r echo=FALSE, warning=FALSE}
+
+# Defining a function for boxplot
+
+make_boxplot <- function(x, y, ylab) {
+  ggplot(aes(x = x,y = y),data = df.wine)+
+    geom_boxplot(col = "black",fill = '#66CD00')+
+    ylab(ylab)
+}
+```
+
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, fig.height=10}
+grid.arrange(make_boxplot(df.wine$quality, df.wine$fixed.acidity,
+                                   'fixed acidity'),
+             make_boxplot(df.wine$quality, df.wine$volatile.acidity,
+                                   'volatile acidity'),
+             make_boxplot(df.wine$quality, df.wine$citric.acid,
+                                   'citric acid'),
+             make_boxplot(df.wine$quality, log10(df.wine$residual.sugar),
+                                   'residual sugar'),
+             make_boxplot(df.wine$quality, log10(df.wine$chlorides),
+                                   'chlorides'),
+             make_boxplot(df.wine$quality, df.wine$free.sulfur.dioxide,
+                                   'free sulf. dioxide'),
+             make_boxplot(df.wine$quality, df.wine$total.sulfur.dioxide,
+                                   'total sulf. dioxide'),
+             make_boxplot(df.wine$quality, df.wine$density,
+                                   'density'),
+             make_boxplot(df.wine$quality, df.wine$pH,
+                                   'pH'),
+             make_boxplot(df.wine$quality, log10(df.wine$sulphates),
+                                   'sulphates'),
+             make_boxplot(df.wine$quality, df.wine$alcohol,
+                                   'alcohol'),
+             ncol = 3)
+```
+
+
+As I have already categorised the quality into three categories it would be nice to apply the above method for Quality_Category varibale for a better visualisation and then I will discuss what the plot reveals .
+
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE, fig.height=10}
+grid.arrange(make_boxplot(df.wine$Quality_Category, df.wine$fixed.acidity,
+                                   'fixed acidity'),
+             make_boxplot(df.wine$Quality_Category, df.wine$volatile.acidity,
+                                   'volatile acidity'),
+             make_boxplot(df.wine$Quality_Category, df.wine$citric.acid,
+                                   'citric acid'),
+             make_boxplot(df.wine$Quality_Category, log10(df.wine$residual.sugar),
+                                   'residual sugar'),
+             make_boxplot(df.wine$Quality_Category, log10(df.wine$chlorides),
+                                   'chlorides'),
+             make_boxplot(df.wine$Quality_Category, df.wine$free.sulfur.dioxide,
+                                   'free sulf. dioxide'),
+             make_boxplot(df.wine$Quality_Category, df.wine$total.sulfur.dioxide,
+                                   'total sulf. dioxide'),
+             make_boxplot(df.wine$Quality_Category, df.wine$density,
+                                   'density'),
+             make_boxplot(df.wine$Quality_Category, df.wine$pH,
+                                   'pH'),
+             make_boxplot(df.wine$Quality_Category, log10(df.wine$sulphates),
+                                   'sulphates'),
+             make_boxplot(df.wine$Quality_Category, df.wine$alcohol,
+                                   'alcohol'),
+             ncol = 4)
+```
+
+From the above plots we can generalise that a 'good' wine generally has these trends:
+
+* higher fixed acidity (tartaric acid) and citric acid, lower volatile acidity  (acetic acid)
+* lower pH (i.e. more acidic)
+* higher sulphates
+* higher alcohol
+* lower chlorides and lower density
+
+
+Now lets plot correlation matrixe to visualize how the variable pairs are correlated from which we can generailise how strong their relationship is.As we know Correlations falls between -1 and 1. 0 suggests there is no association between the two variables while numbers close to -1 or 1 suggests strong negative and positive associations accordingly.
+
+
+```{r echo=FALSE,message=FALSE, warning=FALSE, correlation_matrix}
+ggcorr(subset(df.wine,select = -c(quality,X)), hjust = 0.75, size = 5, palette = "RdGy")
+
+```
+
+From the correlation matrix we found how variables are correalated with each other .As we can see free.sulfer.dioxide and total.sulfer.dioxide are highly correlated .We can also see how PH and acidity are negatively correlated.This clearly reveals the relationships of variables .
+
+
+#####Now lets calculate the correlation between quality and other variables .
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+cor(subset(df.wine,select = -c(quality,Quality_Category,X)), as.numeric(df.wine$quality))
+```
+
+
+From the above analysis it seems the following have higher correlation according to quality -
+
+
+* alcohol
+* volaitle.acidity
+* sulphates
+* citric.acid
+
+
+Let's see how these variables compare, plotted against each other and faceted by wine Quality_Category:
+
+
+
+
+# Bivariate Analysis
+
+#### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+
+
+#####From the correlation matrix and the above diagrams I can say -
+
+* free.sulfur.dioxide and  total.sulfur.dioxide are strongly correlated .This is because free.sulfer.dioxide is a subset of total.sulfer.dioxide .
+
+* Fixed.acidity seems to have little or no effect on quality .
+
+* Quality seems to go up when volatile.acidity goes down. The higher ranges seem to produce more good and poor wines.
+
+* Better wines tend to have higher concentration of citric acid.
+
+* Altough weakly correlated, a lower concentration of chlorides seem to produce better wines.
+
+* Better wines tend to have lower densities.
+
+* In terms of pH it seems better wines are more acid but there were many outliers. Better wines also seem to have a higher concentration of sulphates.
+
+* As I stated before alcohol graduation has a strong correlation with quality.
+
+
+
+#### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+
+I found total.sulfer.dioxide and free.sulfer.dioxide highly correlated and this is also the strongest relationship in this dataset .
+
+
+
+
+
+
+# Multivariate Plots Section
+
+First I will verify how PH and clorides are related and what is their contribution in making a quality wine .
+
+```{r echo=FALSE, Multivariate_Plots}
+ggplot(data = df.wine, aes(x = pH, y = chlorides, color = quality)) + 
+  geom_point() +
+  scale_color_brewer(palette = "PuRd")+
+  facet_wrap(~Quality_Category)+ theme_dark()
+
+```
+
+The above plot din't reveal any significant conclusion.I should move forward.
+Now I will verify how acid factors affect the quality of a wine .I will derive acids with different combinations .
+
+```{r echo=FALSE}
+ggplot(data = df.wine,
+       aes(y = citric.acid, x = fixed.acidity,color = quality)) +
+  geom_point() +
+  scale_color_brewer(palette = "PuRd")+
+  facet_wrap(~Quality_Category)+ theme_dark()
+```
+Now better information .We can see rise in both citric acid and fixed.acid gives better result in producing quality wine .
+
+```{r echo=FALSE}
+ggplot(data = df.wine,
+       aes(x = citric.acid, y = volatile.acidity,color = quality)) +
+  geom_point() +
+  scale_color_brewer(palette = "PuRd")+
+  facet_wrap(~Quality_Category)+ theme_dark()
+```
+
+Wow :) Interesting .It reveals a lot .We can see low citric.acid and high vilatile.acidity results a quality wine .:)
+
+Now lets visualize the role of alcohol in making a quality wine !
+
+
+```{r echo=FALSE}
+
+ggplot(data = df.wine,
+       aes(x = alcohol, y = log10(sulphates),color = quality)) +
+  geom_point() +
+  scale_color_brewer(palette = "PuRd")+
+  facet_wrap(~Quality_Category)+ theme_dark()
+```
+
+From the above plot we can strongly say that for wines with high alcohol content, having a higher concentration of sulphates produces better wines.!!
+
+```{r echo=FALSE}
+ggplot(data = df.wine,
+       aes(x = pH, y = alcohol, color = quality)) +
+  geom_point() +
+  scale_color_brewer(palette = "PuRd")+
+  facet_wrap(~Quality_Category)+ theme_dark()
+```
+
+Low pH and high alcohol concentration seem to be a good match.
+
+```{r echo=FALSE}
+ggplot(data = df.wine,
+       aes(x = alcohol, y = density,color = quality)) +
+  geom_point() +
+  scale_color_brewer(palette = "PuRd")+
+  facet_wrap(~Quality_Category)+ theme_dark()
+```
+
+
+Keeping alcohol constant we dont find any evidence that density affects quality.
+
+
+
+```{r echo=FALSE}
+ggplot(data = df.wine,
+       aes( x = alcohol, y = volatile.acidity,color = quality)) +
+  geom_point() +
+  scale_color_brewer(palette = "PuRd")+
+  facet_wrap(~Quality_Category)+ theme_dark()
+```
+
+
+Having less acetic acid on higher concentration of alcohol seems to produce better wines.
+
+
+# Multivariate Analysis
+
+#### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+
+Facetting by 'Quality_Category' I was able to avoid the crowd and then I found some relations which are given below-
+
+* It seems that for wines with high alcohol content, having a higher concentration of sulphates produces better wines whereas less acetic acid on higher concentration of alcohol seems to produce better wines !!
+
+* It seems lesser PH and more alcohol makes wine better .
+
+* It's clear that a higher citric acid and lower volatile (acetic) acid contributes towards better wines.
+
+#### Were there any interesting or surprising interactions between features?
+
+
+Though there is a strong correlation between fxed.acidity and citric.acid but they don't have any significant effect on quality .
+
+
+# Final Plots and Summary
+
+### Plot One(Wine Quality)
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x = as.factor(quality)),data=df.wine) + 
+  geom_bar(color = I('black'),fill = I('#980043')) + 
+  xlab("Wine Quality")
+```
+
+
+#### Description One
+Plot one shows the distribution of wine quality. The quality rating with highest number is 5. Also we can see that most of wines in our dataset is rated between 5 and 7.As we have calculated before min value of quality is 3 and that of max is 8 .
+
+### Plot Two(Role of alcohol in wine quality)
+```{r echo=FALSE, Plot_One}
+ggplot(data = df.wine, aes(x = quality, y = alcohol,
+                      fill = Quality_Category)) +
+  geom_boxplot() +
+  ggtitle('Alcohol Levels in Different Wine categories') +
+  xlab('Quality') +
+  ylab('Alcohol (% volume)')+
+  scale_color_brewer()+ theme_dark()
+```
+
+#### Description Two
+
+
+From the above boxplots we can say higher alcohol content correlated with higher wine quality .So it has high influence on quality of red wine.
+
+
+### Plot Three(effect of citric acid and acitic acid)
+```{r echo=FALSE, Plot_Three}
+
+ggplot(data = df.wine,
+       aes(x = citric.acid, y = volatile.acidity,color = quality)) +
+  geom_point() +
+  ggtitle('Influence of citric acid and volatile acid in different Wine categories') +
+  xlab('citric acid (g/dm^3)') +
+  ylab('volatile.acidity (g/dm^3)')+
+  scale_color_brewer(palette = "PuRd")+
+  facet_wrap(~Quality_Category)+theme_dark()
+```
+
+#### Description Three
+
+From the above figure we see The lower the acitic acid(volatile acidity), better the quality of wine .Also it reveals that high citric acid and low volatile acidity causes quality wines .
+
+
+# Reflection
+
+
+#####The motto of my analysis was to find out chemical properties affect wine quality 
+
+* First I plotted individual variables so that i could examine any unusual patterns present in the dataset .I found some variables with unusual distribution due to outliers . Thus I used logarithmic transformation and plotted them again and most of them were normally distributed .
+
+* After exploring the individual variables, I proceded to investigate the relationships between each input variable and the outcome variable quality.With the help of correlation matrix I was able to draw the relationship of te vriables among each other .But none of the correlation was above 0.7 .
+
+* However the strongest relationship was found between free.sulfur.dioxide and  total.sulfur.dioxide .When I investigated I found that one is subset of another.
+
+* After the bivriate analysis I plotted multiple variables facetted by 'Quality_Category'.Finally I concluded how alchol and citric acid play role in the quality of a wine .
+
+* I was new to R programming and it was really interesting doing this analysis.I enjoyed a lot .
+
+* AS I googled I found mailc acid and lactic acid also play vital role for taste of wine which were absent in this dataset .If they will be included then It would be better for future analysis .
