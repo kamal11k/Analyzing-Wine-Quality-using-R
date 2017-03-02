@@ -2,8 +2,8 @@
 In this project I used R and applied exploratory data analysis techniques to explore a selected data set for distributions, outliers,
 and anomalies.
 
-## What do I need to install?
-In order to complete the project, you I need to install R. After installing R,I downloaded and installed R Studio.
+## What did I need to install?
+In order to complete the project, I need to install R. After installing R,I downloaded and installed R Studio.
 Finally, I need to install a few packages.Udacity recommend opening R Studio and installing the following packages using
 the command line.
 
